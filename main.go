@@ -18,24 +18,41 @@ func main() {
 	fmt.Println("Starting cache server")
 	fmt.Println("Cache size: ", config.CACHE_DEFAULT_SIZE)
 	fmt.Println("Cache expiry: ", config.DURATION)
-	fmt.Println("Using RandomEvictionPolicy")
-
-	fmt.Println("Want to edit configs?")
-	
-	var cacheSize int
-	fmt.Print("Enter cache size: ")
-	fmt.Scan(&cacheSize)
+	fmt.Println("Using RandomEvictionPolicy By default")
 
 	fmt.Println("Enter eviction policy: ")
-	fmt.Println("1. RandomEvictionPolicy")
-	fmt.Println("2. LRUEvictionPolicy")
-	fmt.Println("3. LIFOEvictionPolicy")
-	fmt.Println("4. FIFOEvictionPolicy")
-	
+	fmt.Println("1. RandomEvictionPolicy: ")
+	fmt.Println("2. LRUEvictionPolicy: ")
+	fmt.Println("3. LIFOEvictionPolicy: ")
+	fmt.Println("4. FIFOEvictionPolicy: ")
+	fmt.Println("5. LFUEvictionPolicy: ")
 
-	// Use a custom eviction policy, here we use RandomEvictionPolicy as an example
-	randomPolicy := eviction.NewRandomEvictionPolicy()
-	cache := cache.NewCache(config.CACHE_DEFAULT_SIZE, randomPolicy)
+	var evictionPolicy int
+	fmt.Scan(&evictionPolicy)
+
+	var policy eviction.EvictionPolicy
+	switch evictionPolicy {
+	case 1:
+		policy = eviction.NewRandomEvictionPolicy()
+		fmt.Println("Using RandomEvictionPolicy")
+	case 2:
+		policy = eviction.NewLRUCachePolicy()
+		fmt.Println("Using LRUEvictionPolicy")
+	case 3:
+		policy = eviction.NewLIFOQueuePolicy()
+		fmt.Println("Using LIFOEvictionPolicy")
+	case 4:
+		policy = eviction.NewFIFOCachePolicy()
+		fmt.Println("Using FIFOEvictionPolicy")
+	case 5:
+		policy = eviction.NewLFUCachePolicy()
+		fmt.Println("Using LFUEvictionPolicy")
+	default:
+		policy = eviction.NewRandomEvictionPolicy()
+		fmt.Println("Using RandomEvictionPolicy")
+	}
+
+	cache := cache.NewCache(config.CACHE_DEFAULT_SIZE, policy)
 	cacheService := service.NewCacheService(cache)
 
 	// cleaning up expired items every minute
