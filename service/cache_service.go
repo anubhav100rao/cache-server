@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/anubhav100rao/cache_server/cache"
+	"github.com/anubhav100rao/cache_server/config"
 )
 
 type CacheService struct {
@@ -48,7 +49,7 @@ func (cs *CacheService) Set(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cs.cache.Set(requestData.Key, requestData.Value)
+	cs.cache.Set(requestData.Key, requestData.Value, config.DURATION)
 	w.WriteHeader(http.StatusNoContent)
 }
 

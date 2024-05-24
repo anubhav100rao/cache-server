@@ -2,15 +2,21 @@ package cache
 
 import (
 	"sync"
+	"time"
 
 	eviction "github.com/anubhav100rao/cache_server/eviction"
 )
+
+type CacheItem struct {
+	Value      interface{}
+	ExpiryTime time.Time
+}
 
 // Cache represents the in-memory cache
 type Cache struct {
 	capacity       int
 	evictionPolicy eviction.EvictionPolicy
-	cache          map[string]interface{}
+	cache          map[string]CacheItem
 	mutex          sync.RWMutex
 }
 
@@ -19,7 +25,7 @@ func NewCache(capacity int, evictionPolicy eviction.EvictionPolicy) *Cache {
 	return &Cache{
 		capacity:       capacity,
 		evictionPolicy: evictionPolicy,
-		cache:          make(map[string]interface{}),
+		cache:          make(map[string]CacheItem),
 	}
 }
 
@@ -29,19 +35,32 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 	defer c.mutex.RUnlock()
 
 	value, exists := c.cache[key]
-	if exists {
-		c.evictionPolicy.RecordAccess(key)
+
+	if !exists {
+		return nil, false
 	}
+
+	if time.Now().After(value.ExpiryTime) {
+		c.mutex.RUnlock()
+		c.Delete(key)
+		c.mutex.RLock()
+		return nil, false
+	}
+
+	c.evictionPolicy.RecordAccess(key)
+
 	return value, exists
 }
 
 // Set adds a key-value pair to the cache
-func (c *Cache) Set(key string, value interface{}) {
+func (c *Cache) Set(key string, value interface{}, duration time.Duration) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	expiryTime := time.Now().Add(duration)
+
 	if _, exists := c.cache[key]; exists {
-		c.cache[key] = value
+		c.cache[key] = CacheItem{Value: value, ExpiryTime: expiryTime}
 		c.evictionPolicy.RecordAccess(key)
 		return
 	}
@@ -53,7 +72,7 @@ func (c *Cache) Set(key string, value interface{}) {
 		}
 	}
 
-	c.cache[key] = value
+	c.cache[key] = CacheItem{Value: value, ExpiryTime: expiryTime}
 	c.evictionPolicy.Add(key)
 }
 
@@ -73,14 +92,35 @@ func (c *Cache) Clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	c.cache = make(map[string]interface{})
+	c.cache = make(map[string]CacheItem)
 	c.evictionPolicy.Clear()
 }
 
 // GetAll returns all key-value pairs from the cache
-func (c *Cache) GetAll() map[string]interface{} {
+func (c *Cache) GetAll() map[string]CacheItem {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
 	return c.cache
+}
+
+func (c *Cache) StartCleanup(interval time.Duration) {
+	go func() {
+		for {
+			time.Sleep(interval)
+			c.cleanup()
+		}
+	}()
+}
+
+func (c *Cache) cleanup() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for key, item := range c.cache {
+		if time.Now().After(item.ExpiryTime) {
+			delete(c.cache, key)
+			c.evictionPolicy.Remove(key)
+		}
+	}
 }
