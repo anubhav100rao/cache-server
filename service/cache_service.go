@@ -6,14 +6,19 @@ import (
 
 	"github.com/anubhav100rao/cache_server/cache"
 	"github.com/anubhav100rao/cache_server/config"
+	"github.com/anubhav100rao/cache_server/logs"
 )
 
 type CacheService struct {
-	cache *cache.Cache
+	cache  *cache.Cache
+	logger logs.Logger
 }
 
-func NewCacheService(cache *cache.Cache) *CacheService {
-	return &CacheService{cache: cache}
+func NewCacheService(cache *cache.Cache, logger logs.Logger) *CacheService {
+	return &CacheService{
+		cache:  cache,
+		logger: logger,
+	}
 }
 
 func (cs *CacheService) Get(w http.ResponseWriter, r *http.Request) {

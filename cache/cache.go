@@ -5,6 +5,7 @@ import (
 	"time"
 
 	eviction "github.com/anubhav100rao/cache_server/eviction"
+	"github.com/anubhav100rao/cache_server/logs"
 )
 
 type CacheItem struct {
@@ -18,14 +19,16 @@ type Cache struct {
 	evictionPolicy eviction.EvictionPolicy
 	cache          map[string]CacheItem
 	mutex          sync.RWMutex
+	logger         logs.Logger
 }
 
 // NewCache creates a new cache with the given capacity and eviction policy
-func NewCache(capacity int, evictionPolicy eviction.EvictionPolicy) *Cache {
+func NewCache(capacity int, evictionPolicy eviction.EvictionPolicy, logger logs.Logger) *Cache {
 	return &Cache{
 		capacity:       capacity,
 		evictionPolicy: evictionPolicy,
 		cache:          make(map[string]CacheItem),
+		logger:         logger,
 	}
 }
 

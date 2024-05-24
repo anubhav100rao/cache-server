@@ -9,11 +9,14 @@ import (
 	cache "github.com/anubhav100rao/cache_server/cache"
 	"github.com/anubhav100rao/cache_server/config"
 	eviction "github.com/anubhav100rao/cache_server/eviction"
+	"github.com/anubhav100rao/cache_server/logs"
 	seeding "github.com/anubhav100rao/cache_server/seeding"
 	service "github.com/anubhav100rao/cache_server/service"
 )
 
 func main() {
+	logger := logs.NewSimpleLogger()
+	logger.Info("Starting cache server1")
 
 	fmt.Println("Starting cache server")
 	fmt.Println("Cache size: ", config.CACHE_DEFAULT_SIZE)
@@ -52,8 +55,8 @@ func main() {
 		fmt.Println("Using RandomEvictionPolicy")
 	}
 
-	cache := cache.NewCache(config.CACHE_DEFAULT_SIZE, policy)
-	cacheService := service.NewCacheService(cache)
+	cache := cache.NewCache(config.CACHE_DEFAULT_SIZE, policy, logger)
+	cacheService := service.NewCacheService(cache, logger)
 
 	// cleaning up expired items every minute
 	cache.StartCleanup(1 * time.Minute) // Set cleanup interval to 1 minute
